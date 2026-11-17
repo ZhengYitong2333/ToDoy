@@ -65,7 +65,10 @@ final class Controller: NSObject, NSApplicationDelegate, ObservableObject {
     }
     @objc func openBoard() {
         if board == nil {
-            let w = NSWindow(contentRect: NSRect(x: 0,y: 0,width: 930,height: 570), styleMask: [.titled,.closable,.resizable,.miniaturizable], backing: .buffered, defer: false)
+            let w = NSWindow(contentRect: NSRect(x: 0,y: 0,width: 930,height: 570), styleMask: [.titled,.closable,.resizable,.miniaturizable,.fullSizeContentView], backing: .buffered, defer: false)
+            w.titleVisibility = .hidden
+            w.titlebarAppearsTransparent = true
+            w.titlebarSeparatorStyle = .none
             w.title = "ToDoy"; w.isReleasedWhenClosed = false
             w.contentView = host(Board(store: store, app: self)); w.center(); w.setFrameAutosaveName("DesktopTodoBoard")
             board = w

@@ -95,6 +95,8 @@ struct TaskRow: View {
     }
 }
 
+private let windowDragStripHeight: CGFloat = 30
+
 struct Board: View {
     @ObservedObject var store: Store
     @ObservedObject var app: Controller
@@ -109,7 +111,8 @@ struct Board: View {
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
-                Label("ToDoy", systemImage: "checklist").font(.title3.bold()).padding(.vertical, 10)
+                Label("ToDoy", systemImage: "checklist").font(.title3.bold())
+                    .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
                 TextField("搜索任务", text: $query).textFieldStyle(.roundedBorder)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 3) {
@@ -131,7 +134,7 @@ struct Board: View {
                 Button { listEditor = TaskList(name: "") } label: {
                     Label("新建列表", systemImage: "plus").frame(maxWidth: .infinity, minHeight: 38, alignment: .leading)
                 }.buttonStyle(SurfaceButtonStyle())
-            }.padding(14).frame(width: 180).background(.regularMaterial)
+            }.padding(14).padding(.top, windowDragStripHeight).frame(width: 180).background(.regularMaterial)
             VStack(alignment: .leading, spacing: 12) {
                 Text(query.isEmpty ? (store.lists.first { $0.id == selectedList }?.name ?? scope.rawValue) : "搜索结果").font(.system(size: 32, weight: .bold))
                 Text(today, format: .dateTime.month().day().weekday(.wide)).font(.subheadline)
@@ -164,7 +167,7 @@ struct Board: View {
                     query = ""
                     if scope == .done { scope = .all }
                 }.id(selectedList?.uuidString ?? scope.rawValue)
-            }.padding(24)
+            }.padding(24).padding(.top, windowDragStripHeight)
             .background {
                 GeometryReader { geo in
                     ZStack { Color.teal
@@ -182,7 +185,13 @@ struct Board: View {
                     .id(detail.task.id)
                     .frame(width: 300)
             }
-        }.frame(minWidth: 680, minHeight: 420)
+        }
+        .overlay(alignment: .top) {
+            Color.clear.frame(height: windowDragStripHeight)
+                .contentShape(Rectangle()).gesture(WindowDragGesture()).accessibilityHidden(true)
+        }
+        .ignoresSafeArea(.container, edges: .top)
+        .frame(minWidth: 680, minHeight: 420)
         .onChange(of: store.items.map(\.id)) { _, ids in
             if let detail = app.detail, detail.existing, !ids.contains(detail.task.id) { app.discardDetail() }
         }
@@ -377,6 +386,7 @@ private struct TaskInspector: View {
                 }
             }.padding(.horizontal, 4).frame(minHeight: 46)
         }
+        .padding(.top, windowDragStripHeight)
         .background(Color(nsColor: .textBackgroundColor))
         .alert("删除这项任务？", isPresented: $confirmDelete) {
             Button("取消", role: .cancel) {}
