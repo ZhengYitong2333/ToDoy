@@ -3,6 +3,7 @@ import Foundation
 struct Todo: Identifiable, Codable, Equatable {
     var id = UUID()
     var title = ""
+    var createdAt: Date? = Date()
     var due: Date?
     var important = false
     var completedAt: Date?
@@ -53,4 +54,47 @@ struct TaskLibrary: Codable {
         if let legacy = try? decoder.decode([Todo].self, from: data) { return TaskLibrary(items: legacy) }
         return try decoder.decode(TaskLibrary.self, from: data)
     }
+}
+
+enum TaskSort: String, CaseIterable, Codable {
+    case defaultOrder = "默认顺序"
+    case importance = "重要性"
+    case title = "名称"
+    case due = "到期日期"
+    case created = "创建日期"
+
+    var icon: String {
+        switch self {
+        case .defaultOrder: return "list.bullet"
+        case .importance: return "star"
+        case .title: return "textformat.abc"
+        case .due: return "calendar"
+        case .created: return "clock"
+        }
+    }
+
+    func arrange(_ tasks: [Todo], completed: Bool = false) -> [Todo] {
+        tasks.enumerated().sorted { left, right in
+            let a = left.element, b = right.element
+            switch self {
+            case .defaultOrder:
+                if completed, a.completedAt != b.completedAt { return (a.completedAt ?? .distantPast) > (b.completedAt ?? .distantPast) }
+            case .importance:
+                if a.important != b.important { return a.important }
+            case .title:
+                let comparison = a.title.localizedStandardCompare(b.title)
+                if comparison != .orderedSame { return comparison == .orderedAscending }
+            case .due:
+                if a.due != b.due { return (a.due ?? .distantFuture) < (b.due ?? .distantFuture) }
+            case .created:
+                if a.createdAt != b.createdAt { return (a.createdAt ?? .distantPast) > (b.createdAt ?? .distantPast) }
+            }
+            return left.offset < right.offset
+        }.map(\.element)
+    }
+}
+
+struct ListDisplayOptions: Codable {
+    var sort = TaskSort.defaultOrder
+    var hideCompleted = false
 }

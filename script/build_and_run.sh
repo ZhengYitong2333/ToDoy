@@ -7,8 +7,9 @@ stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
 bundle="$stage/ToDoy.app"
 mkdir -p "$bundle/Contents/"{MacOS,Resources}
-swiftc -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk -target arm64-apple-macos15.0 main.swift Store.swift Views.swift QuickEntry.swift CompletionBurst.swift Todo.swift -o "$bundle/Contents/MacOS/DesktopTodo"
+swiftc -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk -target arm64-apple-macos15.0 main.swift Store.swift Views.swift Backgrounds.swift QuickEntry.swift CompletionBurst.swift Todo.swift -o "$bundle/Contents/MacOS/DesktopTodo"
 cp Info.plist "$bundle/Contents/"
+cp Resources/Backgrounds/* "$bundle/Contents/Resources/"
 cp Resources/Complete.wav "$bundle/Contents/Resources/"
 sips -s format jpeg -Z 1600 '/System/Library/Desktop Pictures/Sonoma.heic' --out "$bundle/Contents/Resources/Landscape.jpg" >/dev/null
 ext="$bundle/Contents/PlugIns/TodoWidget.appex"

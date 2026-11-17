@@ -18,6 +18,7 @@ final class DetailDraft: ObservableObject {
 final class Controller: NSObject, NSApplicationDelegate, ObservableObject {
     let store = Store(file: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("DesktopTodo/tasks.json"))
+    let background = BackgroundSettings()
     lazy var quickEntry = QuickEntry(store: store)
     var board: NSWindow?
     @Published private(set) var detail: DetailDraft?
@@ -70,7 +71,7 @@ final class Controller: NSObject, NSApplicationDelegate, ObservableObject {
             w.titlebarAppearsTransparent = true
             w.titlebarSeparatorStyle = .none
             w.title = "ToDoy"; w.isReleasedWhenClosed = false
-            w.contentView = host(Board(store: store, app: self)); w.center(); w.setFrameAutosaveName("DesktopTodoBoard")
+            w.contentView = host(Board(store: store, app: self, background: background)); w.center(); w.setFrameAutosaveName("DesktopTodoBoard")
             board = w
         }
         board?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)

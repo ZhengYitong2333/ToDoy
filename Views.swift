@@ -100,6 +100,9 @@ private let windowDragStripHeight: CGFloat = 30
 struct Board: View {
     @ObservedObject var store: Store
     @ObservedObject var app: Controller
+    @ObservedObject var background: BackgroundSettings
+    @State private var backgroundPreferences = false
+    @AppStorage("list.displayOptions") private var displayOptionsData = Data()
     @State private var scope = Scope.today
     @State private var selectedList: UUID?
     @State private var listEditor: TaskList?
@@ -136,13 +139,50 @@ struct Board: View {
                 }.buttonStyle(SurfaceButtonStyle())
             }.padding(14).padding(.top, windowDragStripHeight).frame(width: 180).background(.regularMaterial)
             VStack(alignment: .leading, spacing: 12) {
-                Text(query.isEmpty ? (store.lists.first { $0.id == selectedList }?.name ?? scope.rawValue) : "搜索结果").font(.system(size: 32, weight: .bold))
-                Text(today, format: .dateTime.month().day().weekday(.wide)).font(.subheadline)
+                HStack(alignment: .top) {
+                    Text(query.isEmpty ? (store.lists.first { $0.id == selectedList }?.name ?? scope.rawValue) : "搜索结果").font(.system(size: 32, weight: .bold))
+                    Spacer()
+                    Menu {
+                        Menu {
+                            Picker("排序方式", selection: Binding(get: { displayOptions.sort }, set: { value in
+                                var options = displayOptions; options.sort = value; saveDisplayOptions(options)
+                            })) {
+                                ForEach(TaskSort.allCases, id: \.self) { order in
+                                    Label(order.rawValue, systemImage: order.icon).tag(order)
+                                }
+                            }.pickerStyle(.inline)
+                        } label: { Label("排序", systemImage: "arrow.up.arrow.down") }
+                        Divider()
+                        Button("更改背景…", systemImage: "photo") { backgroundPreferences = true }
+                        if scope != .done || selectedList != nil || !query.isEmpty {
+                            Button(displayOptions.hideCompleted ? "显示已完成任务" : "隐藏已完成任务",
+                                   systemImage: displayOptions.hideCompleted ? "eye" : "eye.slash") {
+                                var options = displayOptions
+                                options.hideCompleted.toggle()
+                                saveDisplayOptions(options)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis").font(.system(size: 18, weight: .semibold))
+                            .frame(width: 36, height: 30)
+                            .background(.black.opacity(0.20), in: RoundedRectangle(cornerRadius: 6))
+                    }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                        .accessibilityLabel("设置")
+                }
+                HStack {
+                    Text(today, format: .dateTime.month().day().weekday(.wide))
+                    Spacer()
+                    if displayOptions.sort != .defaultOrder {
+                        Label(displayOptions.sort.rawValue, systemImage: displayOptions.sort.icon)
+                    }
+                }.font(.caption).foregroundStyle(.white.opacity(0.85))
                 ScrollView { VStack(spacing: 5) {
                     let rows = store.items.filter { query.isEmpty ? (selectedList == nil ? scope.shows($0, now: today) : $0.listID == selectedList) : $0.title.localizedCaseInsensitiveContains(query) || $0.note.localizedCaseInsensitiveContains(query) }
                     let celebrating = Set(bursts.map(\.taskID))
-                    let completed = rows.filter { $0.completed && !celebrating.contains($0.id) }.sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
-                    let pending = rows.filter { !$0.completed || celebrating.contains($0.id) }
+                    let allCompleted = rows.filter { $0.completed && !celebrating.contains($0.id) }
+                    let hideCompleted = displayOptions.hideCompleted && (scope != .done || selectedList != nil || !query.isEmpty)
+                    let completed = hideCompleted ? [] : displayOptions.sort.arrange(allCompleted, completed: true)
+                    let pending = displayOptions.sort.arrange(rows.filter { !$0.completed || celebrating.contains($0.id) })
                     let groupCompleted = scope != .done || !query.isEmpty
                     ForEach(pending) { task in
                         taskRow(task)
@@ -161,6 +201,15 @@ struct Board: View {
                             taskRow(task)
                         }
                     }
+                    if hideCompleted && !allCompleted.isEmpty {
+                        Button {
+                            var options = displayOptions; options.hideCompleted = false; saveDisplayOptions(options)
+                        } label: {
+                            Label("显示已完成任务（\(allCompleted.count)）", systemImage: "eye")
+                                .font(.caption).foregroundStyle(.white.opacity(0.8))
+                                .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
+                        }.buttonStyle(.plain)
+                    }
                     if rows.isEmpty { Text(query.isEmpty ? "暂无任务" : "没有匹配的任务").padding(.top, 28).foregroundStyle(.white) }
                 } }.id(selectedList?.uuidString ?? scope.rawValue)
                 TaskComposer(scope: scope, listID: selectedList, app: app) {
@@ -168,16 +217,7 @@ struct Board: View {
                     if scope == .done { scope = .all }
                 }.id(selectedList?.uuidString ?? scope.rawValue)
             }.padding(24).padding(.top, windowDragStripHeight)
-            .background {
-                GeometryReader { geo in
-                    ZStack { Color.teal
-                        if let picture = NSImage(named: "Landscape") {
-                            Image(nsImage: picture).resizable().scaledToFill()
-                        }
-                        Color.black.opacity(0.25)
-                    }.frame(width: geo.size.width, height: geo.size.height).clipped()
-                }
-            }
+            .background { TaskBackground(settings: background) }
             .environment(\.colorScheme, .dark)
             if let detail = app.detail {
                 Divider()
@@ -197,6 +237,7 @@ struct Board: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in today = Date() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in today = Date() }
+        .sheet(isPresented: $backgroundPreferences) { BackgroundPreferences(settings: background) }
         .sheet(item: $listEditor) { list in
             ListNameForm(list: list, lists: store.lists) { updated in
                 if store.saveList(updated) { select(updated); listEditor = nil }
@@ -208,6 +249,16 @@ struct Board: View {
                 if store.removeList(list.id), selectedList == list.id { selectedList = nil; scope = .all }
             }
         } message: { list in Text("“\(list.name)”里的任务会保留在“全部”中。") }
+    }
+    private var displayKey: String { selectedList?.uuidString ?? scope.rawValue }
+    private var displayOptions: ListDisplayOptions {
+        let all = (try? JSONDecoder().decode([String: ListDisplayOptions].self, from: displayOptionsData)) ?? [:]
+        return all[displayKey] ?? ListDisplayOptions()
+    }
+    private func saveDisplayOptions(_ options: ListDisplayOptions) {
+        var all = (try? JSONDecoder().decode([String: ListDisplayOptions].self, from: displayOptionsData)) ?? [:]
+        all[displayKey] = options
+        if let data = try? JSONEncoder().encode(all) { displayOptionsData = data }
     }
     private func select(_ list: TaskList) {
         selectedList = list.id; scope = .all; query = ""; completedExpanded = true
