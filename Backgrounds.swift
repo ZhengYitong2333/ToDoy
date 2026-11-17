@@ -9,18 +9,18 @@ struct Wallpaper: Identifiable {
     let file: String?
     let colors: [Color]
     static let all: [Wallpaper] = [
-        .init(id: "gg-work", name: "工作G · 夜间专注", category: "GG", file: "gg-work", colors: []),
-        .init(id: "gg-lunch", name: "干饭G · 公司食堂", category: "GG", file: "gg-lunch", colors: []),
-        .init(id: "gg-cloud", name: "休息G · 雨夜咖啡馆", category: "GG", file: "gg-cloud", colors: []),
-        .init(id: "gg-drone", name: "飞影穿梭 · 操控时刻", category: "GG", file: "gg-drone", colors: []),
-        .init(id: "xp-snack", name: "零食管理员 · 补给站", category: "小屁", file: "xp-snack", colors: []),
-        .init(id: "xp-study", name: "工作屁 · 星空电脑桌", category: "小屁", file: "xp-study", colors: []),
-        .init(id: "xp-home", name: "等GG回家 · 窗边灯火", category: "小屁", file: "xp-home", colors: []),
-        .init(id: "xp-clean", name: "扫地Q · 今日清爽", category: "小屁", file: "xp-clean", colors: []),
-        .init(id: "duo-moonbay", name: "芜湖 · 月亮湾", category: "合体", file: "duo-moonbay", colors: []),
-        .init(id: "duo-dumpling", name: "包饺子 · 人间烟火", category: "合体", file: "duo-dumpling", colors: []),
-        .init(id: "duo-photo", name: "颐和园 · 给你拍照", category: "合体", file: "duo-photo", colors: []),
-        .init(id: "duo-morning", name: "起床啦 · 云朵早晨", category: "合体", file: "duo-morning", colors: []),
+        .init(id: "gg-work", name: "工作G · 夜间专注", category: "GG和小屁", file: "gg-work", colors: []),
+        .init(id: "gg-lunch", name: "干饭G · 公司食堂", category: "GG和小屁", file: "gg-lunch", colors: []),
+        .init(id: "gg-cloud", name: "休息G · 雨夜咖啡馆", category: "GG和小屁", file: "gg-cloud", colors: []),
+        .init(id: "gg-drone", name: "飞影穿梭 · 操控时刻", category: "GG和小屁", file: "gg-drone", colors: []),
+        .init(id: "xp-snack", name: "零食管理员 · 补给站", category: "GG和小屁", file: "xp-snack", colors: []),
+        .init(id: "xp-study", name: "工作屁 · 星空电脑桌", category: "GG和小屁", file: "xp-study", colors: []),
+        .init(id: "xp-home", name: "等GG回家 · 窗边灯火", category: "GG和小屁", file: "xp-home", colors: []),
+        .init(id: "xp-clean", name: "扫地Q · 今日清爽", category: "GG和小屁", file: "xp-clean", colors: []),
+        .init(id: "duo-moonbay", name: "芜湖 · 月亮湾", category: "GG和小屁", file: "duo-moonbay", colors: []),
+        .init(id: "duo-dumpling", name: "包饺子 · 人间烟火", category: "GG和小屁", file: "duo-dumpling", colors: []),
+        .init(id: "duo-photo", name: "颐和园 · 给你拍照", category: "GG和小屁", file: "duo-photo", colors: []),
+        .init(id: "duo-morning", name: "起床啦 · 云朵早晨", category: "GG和小屁", file: "duo-morning", colors: []),
 
         .init(id: "original", name: "流动色彩", category: "炫酷", file: "Landscape", colors: []),
         .init(id: "aurora", name: "极光", category: "炫酷", file: nil, colors: [.black, .indigo, .purple, .mint]),
@@ -109,11 +109,13 @@ final class BackgroundSettings: ObservableObject {
         self.defaults = defaults
         let minutes = defaults.integer(forKey: "background.rotationMinutes")
         rotationMinutes = Self.rotationIntervals.contains(minutes) ? minutes : 0
-        let category = defaults.string(forKey: "background.rotationCategory")
+        let storedCategory = defaults.string(forKey: "background.rotationCategory") ?? "全部"
+        let category = ["GG", "小屁", "合体"].contains(storedCategory) ? "GG和小屁" : storedCategory
         rotationCategory = Wallpaper.all.first { $0.category == category }?.category ?? "全部"
         selected = defaults.string(forKey: "background.selected") ?? "original"
         dim = defaults.object(forKey: "background.dim") as? Double ?? 0.25
         customImage = NSImage(contentsOf: customURL)
+        defaults.set(rotationCategory, forKey: "background.rotationCategory")
         if selected == "custom" && customImage == nil { selected = "original" }
         scheduleRotation()
         publishWidgetBackground()
@@ -208,7 +210,7 @@ struct BackgroundPreferences: View {
     @ObservedObject var settings: BackgroundSettings
     @Environment(\.dismiss) private var dismiss
     @State private var category = "全部"
-    private let categories = ["全部", "GG", "小屁", "合体", "炫酷", "田园", "风景", "动漫", "科技"]
+    private let categories = ["全部", "GG和小屁", "炫酷", "田园", "风景", "动漫", "科技"]
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
