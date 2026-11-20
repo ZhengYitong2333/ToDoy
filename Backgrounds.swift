@@ -203,6 +203,8 @@ struct TaskBackground: View {
                 Color.black.opacity(settings.dim)
             }.frame(width: geo.size.width, height: geo.size.height).clipped()
         }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 

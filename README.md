@@ -6,7 +6,7 @@
 
 原生 macOS 本地任务管理应用，搭配桌面小组件、GG 和小屁壁纸，以及完成任务时的小小庆祝。
 
-[下载最新版](https://github.com/ZhengYitong2333/ToDoy/releases/latest) · [下载 v1.4.0 DMG](https://github.com/ZhengYitong2333/ToDoy/releases/download/v1.4.0/ToDoy-1.4.0.dmg)
+[下载最新版](https://github.com/ZhengYitong2333/ToDoy/releases/latest) · [下载 v1.4.1 DMG](https://github.com/ZhengYitong2333/ToDoy/releases/download/v1.4.1/ToDoy-1.4.1.dmg)
 
 macOS 15+ · Apple Silicon / Intel · SwiftUI / AppKit / WidgetKit
 

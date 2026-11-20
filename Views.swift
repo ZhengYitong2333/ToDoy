@@ -98,6 +98,7 @@ struct TaskRow: View {
 private let windowDragStripHeight: CGFloat = 30
 
 struct Board: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject var store: Store
     @ObservedObject var app: Controller
     @ObservedObject var background: BackgroundSettings
@@ -115,16 +116,23 @@ struct Board: View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
                 Label("ToDoy", systemImage: "checklist").font(.title3.bold())
-                    .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
-                TextField("搜索任务", text: $query).textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading).padding(.horizontal, 14)
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                    TextField("搜索任务", text: $query).textFieldStyle(.plain)
+                }
+                .padding(.horizontal, 10).frame(height: 28)
+                .background(.background.opacity(0.8), in: Capsule())
+                .overlay(Capsule().strokeBorder(.primary.opacity(0.08)))
+                .padding(.horizontal, 12)
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: 0) {
                         ForEach(Scope.allCases, id: \.self) { item in
-                            sidebarButton(item.rawValue, icon: item.icon, selected: selectedList == nil && scope == item) {
+                            sidebarButton(item.rawValue, icon: item.icon, color: sidebarColor(item), selected: selectedList == nil && scope == item) {
                                 selectedList = nil; scope = item; query = ""; completedExpanded = true
                             }
                         }
-                        Divider()
+                        Divider().padding(.horizontal, 12).padding(.vertical, 8)
                         ForEach(store.lists) { list in
                             sidebarButton(list.name, icon: "list.bullet", selected: selectedList == list.id) { select(list) }
                                 .contextMenu {
@@ -136,8 +144,8 @@ struct Board: View {
                 }
                 Button { listEditor = TaskList(name: "") } label: {
                     Label("新建列表", systemImage: "plus").frame(maxWidth: .infinity, minHeight: 38, alignment: .leading)
-                }.buttonStyle(SurfaceButtonStyle())
-            }.padding(14).padding(.top, windowDragStripHeight).frame(width: 180).background(.regularMaterial)
+                }.buttonStyle(SurfaceButtonStyle()).padding(.horizontal, 14)
+            }.padding(.vertical, 10).padding(.top, windowDragStripHeight).frame(width: 180).background(.regularMaterial)
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top) {
                     Text(query.isEmpty ? (store.lists.first { $0.id == selectedList }?.name ?? scope.rawValue) : "搜索结果").font(.system(size: 32, weight: .bold))
@@ -220,12 +228,17 @@ struct Board: View {
             .background { TaskBackground(settings: background) }
             .environment(\.colorScheme, .dark)
             if let detail = app.detail {
-                Divider()
-                TaskInspector(detail: detail, app: app, completionChanged: completionChanged)
-                    .id(detail.task.id)
-                    .frame(width: 300)
+                HStack(spacing: 0) {
+                    Divider()
+                    TaskInspector(detail: detail, app: app, completionChanged: completionChanged)
+                        .id(detail.task.id)
+                        .frame(width: 300)
+                }
+                .transition(reduceMotion ? .opacity : .move(edge: .trailing).combined(with: .opacity))
             }
         }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.24), value: app.detail != nil)
+        .clipped()
         .overlay(alignment: .top) {
             Color.clear.frame(height: windowDragStripHeight)
                 .contentShape(Rectangle()).gesture(WindowDragGesture()).accessibilityHidden(true)
@@ -263,12 +276,22 @@ struct Board: View {
     private func select(_ list: TaskList) {
         selectedList = list.id; scope = .all; query = ""; completedExpanded = true
     }
-    private func sidebarButton(_ name: String, icon: String, selected: Bool, action: @escaping () -> Void) -> some View {
+    private func sidebarColor(_ scope: Scope) -> Color {
+        switch scope {
+        case .today: return .indigo
+        case .important: return .orange
+        case .planned: return .teal
+        case .all: return .blue
+        case .done: return .green
+        }
+    }
+    private func sidebarButton(_ name: String, icon: String, color: Color = .secondary, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack { Image(systemName: icon).foregroundStyle(.teal).frame(width: 20); Text(name).lineLimit(1); Spacer() }
-                .padding(.horizontal, 10).frame(maxWidth: .infinity, minHeight: 40).contentShape(Rectangle())
-                .background(selected && query.isEmpty ? Color.primary.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 7))
+            HStack(spacing: 10) { Image(systemName: icon).foregroundStyle(color).frame(width: 20); Text(name).lineLimit(1); Spacer() }
+                .padding(.horizontal, 16).frame(maxWidth: .infinity, minHeight: 32).contentShape(Rectangle())
+                .background(selected && query.isEmpty ? Color.primary.opacity(0.10) : .clear)
         }.buttonStyle(SurfaceButtonStyle())
+            .accessibilityAddTraits(selected && query.isEmpty ? .isSelected : [])
     }
     private func taskRow(_ task: Todo) -> some View {
         let burst = bursts.first { $0.taskID == task.id }
