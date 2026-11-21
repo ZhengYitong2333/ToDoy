@@ -6,7 +6,7 @@
 
 原生 macOS 本地任务管理应用，搭配桌面小组件、GG 和小屁壁纸，以及完成任务时的小小庆祝。
 
-[下载最新版](https://github.com/ZhengYitong2333/ToDoy/releases/latest) · [下载 v1.4.1 DMG](https://github.com/ZhengYitong2333/ToDoy/releases/download/v1.4.1/ToDoy-1.4.1.dmg)
+[下载最新版](https://github.com/ZhengYitong2333/ToDoy/releases/latest) · [下载 v1.5.0 DMG](https://github.com/ZhengYitong2333/ToDoy/releases/download/v1.5.0/ToDoy-1.5.0.dmg)
 
 macOS 15+ · Apple Silicon / Intel · SwiftUI / AppKit / WidgetKit
 
@@ -21,9 +21,11 @@ macOS 15+ · Apple Silicon / Intel · SwiftUI / AppKit / WidgetKit
 | 功能 | 可以做什么 |
 | --- | --- |
 | 任务管理 | 新增、编辑、删除、完成和重新打开任务，添加备注 |
-| 智能视图 | 我的一天、重要、计划内、全部、已完成 |
+| 智能视图 | 我的一天、重要、计划内、已逾期（红点提醒）、全部、已完成 |
 | 自定义列表 | 创建、重命名和删除列表，通过右键菜单移动任务 |
 | 截止时间 | 快选今天、明天，或指定日期和时间 |
+| 提醒我 | 选择提醒时间，通过 macOS 系统通知提醒，点击通知打开对应任务 |
+| 重复 | 每天、工作日、每周、每月、每年；完成后生成下一次任务 |
 | 任务详情 | 点击任务，在右侧栏编辑内容、重要标记、日期和备注 |
 | 排序与显示 | 按重要性、名称、到期日期或创建日期排序，显示或隐藏已完成任务 |
 | 搜索 | 跨列表搜索任务标题和备注 |
@@ -31,7 +33,13 @@ macOS 15+ · Apple Silicon / Intel · SwiftUI / AppKit / WidgetKit
 
 ![任务详情侧栏，展示示例任务与备注](docs/images/task-details.png)
 
-> 本页界面图由当前视图代码与示例任务渲染。实际字体、颜色和布局会随系统外观及窗口尺寸变化。
+> 本页界面图由视图代码与示例任务渲染。实际字体、颜色和布局会随系统外观及窗口尺寸变化。
+
+### 提醒与重复任务
+
+在任务详情选择「提醒我」或「重复」，确认后点击侧栏底部「保存」。首次设置提醒会请求系统通知权限；若被拒绝，可在「系统设置 → 通知 → ToDoy」中开启。已安排的本地通知由系统负责投递，完成、删除任务或清除提醒会取消待发送通知；已错过的提醒不补发。系统勿扰和通知设置仍会影响提示方式，参见 [Apple 本地通知说明](https://developer.apple.com/documentation/usernotifications/scheduling-a-notification-locally-from-your-app)。
+
+重复任务完成后保留本次记录，并创建下一次未来任务，延续列表、重要标记、备注和提醒相对截止时间的间隔。工作日指周一至周五，不包含法定节假日调整。每月和每年沿用原始日期，月底及闰年会自动适配；未完成时不会不断堆积新任务。重新打开历史任务不会删除或重复创建已经生成的下一次任务，停止后续重复请编辑最新的未完成任务，选择「不重复」。
 
 ## 桌面上，也能随手记
 
@@ -116,6 +124,9 @@ cd ToDoy
 | main.swift | 应用生命周期、窗口与任务详情状态 |
 | Views.swift | 任务界面、输入区、详情侧栏与菜单 |
 | Todo.swift / Store.swift | 数据模型、本地持久化与排序 |
+| Reminders.swift | 系统通知授权、调度、取消及点击处理 |
+| TaskScheduleViews.swift | 重复规则选择与通知状态 |
+| ScheduleChecks.swift | 重复日期、旧数据兼容及提醒请求自检 |
 | Backgrounds.swift | 壁纸目录、定时轮换和背景设置 |
 | QuickEntry.swift | 小组件快速添加输入框 |
 | CompletionBurst.swift | 完成反馈 |

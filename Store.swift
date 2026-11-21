@@ -2,12 +2,13 @@ import SwiftUI
 import WidgetKit
 
 enum Scope: String, CaseIterable {
-    case today = "我的一天", important = "重要", planned = "计划内", all = "全部", done = "已完成"
+    case today = "我的一天", important = "重要", planned = "计划内", overdue = "已逾期", all = "全部", done = "已完成"
     var icon: String {
         switch self {
         case .today: return "sun.max"
         case .important: return "star"
         case .planned: return "calendar"
+        case .overdue: return "clock.badge.exclamationmark"
         case .all: return "tray"
         case .done: return "checkmark.circle"
         }
@@ -16,7 +17,8 @@ enum Scope: String, CaseIterable {
         switch self {
         case .today: return t.inMyDay(on: now)
         case .important: return t.important
-        case .planned: return t.due != nil
+        case .planned: return t.due != nil && !t.isOverdue(on: now)
+        case .overdue: return t.isOverdue(on: now)
         case .all: return true
         case .done: return t.completed
         }
@@ -28,6 +30,7 @@ final class Store: ObservableObject {
     var items: [Todo] { library.items }
     var lists: [TaskList] { library.lists }
     let file: URL
+    var didPersist: (([Todo]) -> Void)?
     private var readError: Error?
     init(file: URL) {
         self.file = file
@@ -40,6 +43,7 @@ final class Store: ObservableObject {
         try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
         try JSONEncoder().encode(next).write(to: file, options: .atomic)
         library = next
+        didPersist?(next.items)
         if file.lastPathComponent == "tasks.json" && Bundle.main.bundleIdentifier == "local.desktop.todo.panel" {
             WidgetCenter.shared.reloadTimelines(ofKind: TodoWidgetID.kind)
         }
@@ -74,7 +78,18 @@ final class Store: ObservableObject {
         change { list in
             var task = task
             if let index = list.firstIndex(where: { $0.id == task.id }) {
-                task.completedAt = task.completed ? (list[index].completed ? list[index].completedAt : Date()) : nil
+                let previous = list[index]
+                let now = Date()
+                task.completedAt = task.completed ? (previous.completed ? previous.completedAt : now) : nil
+                task.nextOccurrenceID = previous.nextOccurrenceID
+                if task.recurrence != previous.recurrence || task.due != previous.due {
+                    task.recurrenceAnchor = task.due ?? task.reminderAt ?? now
+                }
+                if task.completed && !previous.completed && task.nextOccurrenceID == nil,
+                   let next = task.nextOccurrence(after: now) {
+                    task.nextOccurrenceID = next.id
+                    list.append(next)
+                }
                 list[index] = task
             } else {
                 task.completedAt = task.completed ? Date() : nil

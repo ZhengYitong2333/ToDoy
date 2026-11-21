@@ -33,7 +33,7 @@ private struct QuickForm: View {
             }.accessibilityLabel("设置截止时间")
                 .help(draft.task.due?.formatted() ?? "设置截止时间")
                 .popover(isPresented: $choosingDate) {
-                    DueOptions(task: $draft.task).padding(14).frame(width: 260)
+                    DueOptions(task: $draft.task) { choosingDate = false }
                 }
             Button(action: save) {
                 Image(systemName: "arrow.up.circle.fill").font(.system(size: 24))

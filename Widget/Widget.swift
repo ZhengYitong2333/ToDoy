@@ -26,7 +26,7 @@ struct Provider: TimelineProvider {
                 guard $0.completed, let completedAt = $0.completedAt else { return false }
                 return completedAt <= now && now < completedAt.addingTimeInterval(Entry.completionNoticeDuration)
             }.max { ($0.completedAt ?? .distantPast) < ($1.completedAt ?? .distantPast) }
-            return Entry(tasks: tasks.filter { !$0.completed }, lastCompleted: last, background: background)
+            return Entry(tasks: TaskSort.due.arrange(tasks.filter { !$0.completed }), lastCompleted: last, background: background)
         } catch let error as NSError where error.domain == NSCocoaErrorDomain && error.code == NSFileReadNoSuchFileError {
             return Entry(tasks: [], background: background)
         } catch { return Entry(tasks: [], unavailable: true, background: background) }

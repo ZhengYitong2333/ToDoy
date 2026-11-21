@@ -13,9 +13,9 @@ stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
 bundle="$stage/ToDoy.app"
 mkdir -p "$bundle/Contents/"{MacOS,Resources}
-swiftc -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk -target arm64-apple-macos15.0 main.swift Store.swift Views.swift Backgrounds.swift QuickEntry.swift CompletionBurst.swift Todo.swift -o "$bundle/Contents/MacOS/DesktopTodo"
+swiftc -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk -target arm64-apple-macos15.0 main.swift Store.swift Views.swift Backgrounds.swift QuickEntry.swift CompletionBurst.swift Todo.swift Reminders.swift TaskScheduleViews.swift ScheduleChecks.swift -o "$bundle/Contents/MacOS/DesktopTodo"
 if $package_mode; then
-  swiftc -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk -target x86_64-apple-macos15.0 main.swift Store.swift Views.swift Backgrounds.swift QuickEntry.swift CompletionBurst.swift Todo.swift -o "$stage/DesktopTodo-intel"
+  swiftc -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk -target x86_64-apple-macos15.0 main.swift Store.swift Views.swift Backgrounds.swift QuickEntry.swift CompletionBurst.swift Todo.swift Reminders.swift TaskScheduleViews.swift ScheduleChecks.swift -o "$stage/DesktopTodo-intel"
   lipo -create "$bundle/Contents/MacOS/DesktopTodo" "$stage/DesktopTodo-intel" -output "$stage/DesktopTodo-universal"
   cp "$stage/DesktopTodo-universal" "$bundle/Contents/MacOS/DesktopTodo"
 fi
