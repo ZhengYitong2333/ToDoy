@@ -9,9 +9,29 @@ if [[ "${1:-}" == "--package" ]]; then
   package_output="${2:A}"
 fi
 identity="${TODO_SIGN_IDENTITY:--}"
+lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 stage=$(mktemp -d)
-trap 'rm -rf "$stage"' EXIT
 bundle="$stage/ToDoy.app"
+packaged_bundle=""
+cleanup() {
+  # Running a bundle self-check can register the temporary app with LaunchServices.
+  # A newer build outside /Applications can then invalidate the installed widget.
+  "$lsregister" -u "$bundle" >/dev/null 2>&1 || true
+  if [[ -n "$packaged_bundle" ]]; then
+    "$lsregister" -u "$packaged_bundle" >/dev/null 2>&1 || true
+  fi
+  rm -rf "$stage"
+  if [[ -d "$app" ]]; then
+    "$lsregister" -f "$app" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT
+# Retire only this project's packaging copies; keep all artifacts and task data.
+for artifact in dist/**/ToDoy.app(N/); do
+  if [[ "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$artifact/Contents/Info.plist" 2>/dev/null)" == local.desktop.todo.panel ]]; then
+    "$lsregister" -u "$artifact" >/dev/null 2>&1 || true
+  fi
+done
 mkdir -p "$bundle/Contents/"{MacOS,Resources}
 swiftc -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk -target arm64-apple-macos15.0 main.swift Store.swift Views.swift Backgrounds.swift QuickEntry.swift CompletionBurst.swift Todo.swift Reminders.swift TaskScheduleViews.swift ScheduleChecks.swift -o "$bundle/Contents/MacOS/DesktopTodo"
 if $package_mode; then
@@ -33,11 +53,14 @@ if $package_mode; then
 fi
 cp Widget/Info.plist "$ext/Contents/"
 # WidgetKit validates each timeline against the installed host and extension build.
-build=1
+build=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' Info.plist)
+[[ "$build" == <-> ]] || exit 1
 if [[ -f "$app/Contents/Info.plist" ]]; then
   previous=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$app/Contents/Info.plist")
   [[ "$previous" == <-> ]] || exit 1
-  build=$((previous + 1))
+  if (( previous >= build )); then
+    build=$((previous + 1))
+  fi
 fi
 for info in "$ext/Contents/Info.plist" "$bundle/Contents/Info.plist"; do
   plutil -replace CFBundleVersion -string "$build" "$info"
@@ -59,6 +82,7 @@ if $package_mode; then
   mkdir -p "$package_output"
   [[ ! -e "$package_output/ToDoy.app" ]] || { print -u2 "Output app already exists"; exit 1; }
   ditto "$bundle" "$package_output/ToDoy.app"
+  packaged_bundle="$package_output/ToDoy.app"
   print "Packaged $package_output/ToDoy.app"
   exit 0
 fi
@@ -76,9 +100,16 @@ for installed in "$app" "$legacy"; do
 done
 ditto "$bundle" "$app"
 codesign --verify --deep --strict "$app"
-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app"
-open "$app"
+"$lsregister" -u "$bundle" >/dev/null 2>&1 || true
+"$lsregister" -f "$app"
+# Chronod may relaunch the old extension while the bundle is being copied.
+# Stop it again only after the complete bundle and host registration are current.
+pkill -f "^$app/Contents/PlugIns/TodoWidget[.]appex/Contents/MacOS/TodoWidget( |$)" || true
 pluginkit -a "$app/Contents/PlugIns/TodoWidget.appex"
+# The renderer can retain the previous bundle's placeholder even after a
+# successful timeline reload. Restart it after installation, preserving layout.
+killall NotificationCenter 2>/dev/null || true
+open "$app"
 
 link="$HOME/Desktop/ToDoy.app"
 oldlink="$HOME/Desktop/桌面待办.app"

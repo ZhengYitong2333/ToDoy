@@ -6,7 +6,7 @@
 
 原生 macOS 本地任务管理应用，搭配桌面小组件、GG 和小屁壁纸，以及完成任务时的小小庆祝。
 
-[下载最新版](https://github.com/ZhengYitong2333/ToDoy/releases/latest) · [下载 v1.5.0 DMG](https://github.com/ZhengYitong2333/ToDoy/releases/download/v1.5.0/ToDoy-1.5.0.dmg)
+[下载最新版](https://github.com/ZhengYitong2333/ToDoy/releases/latest) · [下载 v1.5.1 DMG](https://github.com/ZhengYitong2333/ToDoy/releases/download/v1.5.1/ToDoy-1.5.1.dmg)
 
 macOS 15+ · Apple Silicon / Intel · SwiftUI / AppKit / WidgetKit
 
@@ -118,6 +118,10 @@ cd ToDoy
 ```
 
 此命令输出 ToDoy.app。发布用 DMG 需要另外封装。
+
+构建脚本会撤销临时应用及本项目 `dist` 内打包副本的系统注册，并恢复 `/Applications/ToDoy.app` 的注册，避免不同版本导致小组件一直显示占位条。日常运行请使用应用程序目录中的 ToDoy；验证打包产物后不要将其作为第二份应用运行。
+
+本地安装完成后，脚本会重启 macOS 的小组件显示进程，使不同尺寸的小组件重新加载内容；桌面布局和任务数据会保留。仅打包时不会重启显示进程。
 
 | 文件 | 职责 |
 | --- | --- |
