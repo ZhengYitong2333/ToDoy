@@ -15,15 +15,17 @@ final class DetailDraft: ObservableObject {
     }
 }
 
-final class Controller: NSObject, NSApplicationDelegate, ObservableObject {
+@MainActor final class Controller: NSObject, NSApplicationDelegate, ObservableObject {
     let store = Store(file: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("DesktopTodo/tasks.json"))
     let background = BackgroundSettings()
     let reminders = ReminderService()
+    let updates = UpdateService()
     lazy var quickEntry = QuickEntry(store: store)
     var board: NSWindow?
     @Published private(set) var detail: DetailDraft?
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Task { @MainActor in updates.start() }
         reminders.start()
         reminders.onOpen = { [weak self] id in
             guard let self else { return }
@@ -52,7 +54,14 @@ final class Controller: NSObject, NSApplicationDelegate, ObservableObject {
         openBoard()
         return true
     }
-    func applicationDidBecomeActive(_ notification: Notification) { reminders.synchronize(store.items) }
+    func applicationDidBecomeActive(_ notification: Notification) {
+        reminders.synchronize(store.items)
+        Task { @MainActor in updates.checkAutomatically() }
+    }
+    @MainActor func installUpdate() {
+        guard canLeaveDetail(), quickEntry.prepareForUpdate() else { return }
+        if updates.install() { NSApp.terminate(nil) }
+    }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         Task { @MainActor in
             await reminders.finishPendingUpdates()
@@ -88,7 +97,7 @@ final class Controller: NSObject, NSApplicationDelegate, ObservableObject {
             w.titlebarAppearsTransparent = true
             w.titlebarSeparatorStyle = .none
             w.title = "ToDoy"; w.isReleasedWhenClosed = false
-            w.contentView = host(Board(store: store, app: self, background: background)); w.center(); w.setFrameAutosaveName("DesktopTodoBoard")
+            w.contentView = host(Board(store: store, app: self, background: background, updates: updates)); w.center(); w.setFrameAutosaveName("DesktopTodoBoard")
             board = w
         }
         board?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
@@ -162,6 +171,7 @@ final class Controller: NSObject, NSApplicationDelegate, ObservableObject {
 
 if CommandLine.arguments.contains("--self-check") {
     try runScheduleChecks()
+    try runUpdateChecks()
     let calendar = Calendar.current
     let today = calendar.date(from: DateComponents(year: 2026, month: 11, day: 21, hour: 12))!
     let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
@@ -260,9 +270,11 @@ if CommandLine.arguments.contains("--self-check") {
     print("All scope classifications, transitions and overdue badge checks OK")
     print("CRUD and persistence OK")
 } else {
-    let app = NSApplication.shared
-    let delegate = Controller()
-    app.delegate = delegate
-    app.setActivationPolicy(.regular)
-    app.run()
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        let delegate = Controller()
+        app.delegate = delegate
+        app.setActivationPolicy(.regular)
+        app.run()
+    }
 }

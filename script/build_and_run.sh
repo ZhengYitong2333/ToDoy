@@ -33,14 +33,15 @@ for artifact in dist/**/ToDoy.app(N/); do
   fi
 done
 mkdir -p "$bundle/Contents/"{MacOS,Resources}
-swiftc -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk -target arm64-apple-macos15.0 main.swift Store.swift Views.swift Backgrounds.swift QuickEntry.swift CompletionBurst.swift Todo.swift Reminders.swift TaskScheduleViews.swift ScheduleChecks.swift -o "$bundle/Contents/MacOS/DesktopTodo"
+swiftc -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk -target arm64-apple-macos15.0 main.swift Store.swift Views.swift Backgrounds.swift QuickEntry.swift CompletionBurst.swift Todo.swift Reminders.swift TaskScheduleViews.swift ScheduleChecks.swift UpdateService.swift SoftwareUpdateView.swift UpdateChecks.swift -o "$bundle/Contents/MacOS/DesktopTodo"
 if $package_mode; then
-  swiftc -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk -target x86_64-apple-macos15.0 main.swift Store.swift Views.swift Backgrounds.swift QuickEntry.swift CompletionBurst.swift Todo.swift Reminders.swift TaskScheduleViews.swift ScheduleChecks.swift -o "$stage/DesktopTodo-intel"
+  swiftc -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk -target x86_64-apple-macos15.0 main.swift Store.swift Views.swift Backgrounds.swift QuickEntry.swift CompletionBurst.swift Todo.swift Reminders.swift TaskScheduleViews.swift ScheduleChecks.swift UpdateService.swift SoftwareUpdateView.swift UpdateChecks.swift -o "$stage/DesktopTodo-intel"
   lipo -create "$bundle/Contents/MacOS/DesktopTodo" "$stage/DesktopTodo-intel" -output "$stage/DesktopTodo-universal"
   cp "$stage/DesktopTodo-universal" "$bundle/Contents/MacOS/DesktopTodo"
 fi
 cp Info.plist "$bundle/Contents/"
 cp Resources/Backgrounds/* "$bundle/Contents/Resources/"
+cp script/install-update.sh "$bundle/Contents/Resources/"
 cp Resources/Complete.wav "$bundle/Contents/Resources/"
 sips -s format jpeg -Z 1600 '/System/Library/Desktop Pictures/Sonoma.heic' --out "$bundle/Contents/Resources/Landscape.jpg" >/dev/null
 ext="$bundle/Contents/PlugIns/TodoWidget.appex"

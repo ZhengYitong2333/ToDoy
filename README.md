@@ -6,7 +6,7 @@
 
 原生 macOS 本地任务管理应用，搭配桌面小组件、GG 和小屁壁纸，以及完成任务时的小小庆祝。
 
-[下载最新版](https://github.com/ZhengYitong2333/ToDoy/releases/latest) · [下载 v1.5.1 DMG](https://github.com/ZhengYitong2333/ToDoy/releases/download/v1.5.1/ToDoy-1.5.1.dmg)
+[下载最新版](https://github.com/ZhengYitong2333/ToDoy/releases/latest) · [下载 v1.6.0 DMG](https://github.com/ZhengYitong2333/ToDoy/releases/download/v1.6.0/ToDoy-1.6.0.dmg)
 
 macOS 15+ · Apple Silicon / Intel · SwiftUI / AppKit / WidgetKit
 
@@ -87,6 +87,18 @@ macOS 15+ · Apple Silicon / Intel · SwiftUI / AppKit / WidgetKit
 
 升级前退出旧版，再替换「应用程序」中的 ToDoy。本机任务和偏好会继续使用。
 
+
+### 应用内更新
+
+右上角「… → 软件更新」可检查 GitHub 正式 Release。发现更高版本时，「…」显示红点；已知的新版本会保留提醒，直到安装完成。默认启动、回到应用（距上次尝试至少 15 分钟）及每小时检查，可关闭自动检查。
+
+点击「下载更新」，完成校验后选择「安装并重新启动」。更新会保留本机任务、壁纸和输入草稿；详情编辑和快速输入尚未保存时，会先询问保存。安装替换失败会尝试恢复旧应用。请从可写的应用程序目录运行，不支持直接在 DMG 内更新。
+
+新 Release 需要上传 `ToDoy-版本号.dmg` 通用包，主程序和小组件的版本、构建号须一致；更新器使用 [GitHub Release API](https://docs.github.com/en/rest/releases/releases) 返回的 SHA-256 校验下载文件，并检查签名、应用身份、系统版本及架构。草稿和预发布版本不会触发更新。1.5.x 不含更新器，首次需手动安装包含此功能的版本。
+
+「网络设置」可填写仅供更新使用的 HTTP / SOCKS5 代理，留空沿用系统代理。实现使用 [Apple URLSession 代理配置](https://developer.apple.com/documentation/foundation/urlsessionconfiguration/proxyconfigurations)，不会改变系统网络设置。
+
+
 ## 本地数据
 
 任务和列表保存在当前用户的文件中。
@@ -128,6 +140,8 @@ cd ToDoy
 | main.swift | 应用生命周期、窗口与任务详情状态 |
 | Views.swift | 任务界面、输入区、详情侧栏与菜单 |
 | Todo.swift / Store.swift | 数据模型、本地持久化与排序 |
+| UpdateService.swift / SoftwareUpdateView.swift | 版本检查、下载校验与更新界面 |
+| script/install-update.sh | 应用替换、重新启动与失败恢复 |
 | Reminders.swift | 系统通知授权、调度、取消及点击处理 |
 | TaskScheduleViews.swift | 重复规则选择与通知状态 |
 | ScheduleChecks.swift | 重复日期、旧数据兼容及提醒请求自检 |
@@ -136,4 +150,3 @@ cd ToDoy
 | CompletionBurst.swift | 完成反馈 |
 | Widget/Widget.swift | 桌面小组件 |
 | Resources/Backgrounds/ | 内置壁纸资源 |
-

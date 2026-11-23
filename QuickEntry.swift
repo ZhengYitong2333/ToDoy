@@ -85,5 +85,15 @@ final class QuickEntry: NSPanel {
         dismissDraft()
     }
     private func dismissDraft() { orderOut(nil); draft.task = Todo() }
+    func prepareForUpdate() -> Bool {
+        guard !draft.task.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return true }
+        let alert = NSAlert()
+        alert.messageText = "保存快速输入的任务后更新？"
+        alert.addButton(withTitle: "保存并更新")
+        alert.addButton(withTitle: "继续编辑")
+        guard alert.runModal() == .alertFirstButtonReturn else { return false }
+        save()
+        return draft.task.title.isEmpty
+    }
 
 }

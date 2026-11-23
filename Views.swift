@@ -123,7 +123,9 @@ struct Board: View {
     @ObservedObject var store: Store
     @ObservedObject var app: Controller
     @ObservedObject var background: BackgroundSettings
+    @ObservedObject var updates: UpdateService
     @State private var backgroundPreferences = false
+    @State private var softwareUpdate = false
     @AppStorage("list.displayOptions") private var displayOptionsData = Data()
     @State private var scope = Scope.today
     @State private var selectedList: UUID?
@@ -194,6 +196,10 @@ struct Board: View {
                         } label: { Label("排序", systemImage: "arrow.up.arrow.down") }
                         Divider()
                         Button("更改背景…", systemImage: "photo") { backgroundPreferences = true }
+                        Button(updates.hasUpdate ? "软件更新 · 有新版本" : "软件更新…", systemImage: "arrow.down.circle") {
+                            softwareUpdate = true
+                            updates.check()
+                        }
                         if (scope != .done && scope != .overdue) || selectedList != nil || !query.isEmpty {
                             Button(displayOptions.hideCompleted ? "显示已完成任务" : "隐藏已完成任务",
                                    systemImage: displayOptions.hideCompleted ? "eye" : "eye.slash") {
@@ -206,8 +212,15 @@ struct Board: View {
                         Image(systemName: "ellipsis").font(.system(size: 18, weight: .semibold))
                             .frame(width: 36, height: 30)
                             .background(.black.opacity(0.20), in: RoundedRectangle(cornerRadius: 6))
+                            .overlay(alignment: .topTrailing) {
+                                if updates.hasUpdate {
+                                    Circle().fill(.red).frame(width: 8, height: 8)
+                                        .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 1.5))
+                                        .offset(x: 2, y: -2).allowsHitTesting(false)
+                                }
+                            }
                     }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-                        .accessibilityLabel("设置")
+                        .accessibilityLabel(updates.hasUpdate ? "设置，有新版本可更新" : "设置")
                 }
                 HStack {
                     Text(today, format: .dateTime.month().day().weekday(.wide))
@@ -305,6 +318,9 @@ struct Board: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in today = Date() }
         .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { today = $0 }
         .sheet(isPresented: $backgroundPreferences) { BackgroundPreferences(settings: background) }
+        .sheet(isPresented: $softwareUpdate) {
+            SoftwareUpdateView(updates: updates, install: app.installUpdate)
+        }
         .sheet(item: $listEditor) { list in
             ListNameForm(list: list, lists: store.lists) { updated in
                 if store.saveList(updated) { select(updated); listEditor = nil }
